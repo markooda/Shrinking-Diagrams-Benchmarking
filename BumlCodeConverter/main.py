@@ -49,29 +49,36 @@ def generate_python_code_from_buml(
     with open(buml_file_path, 'r', encoding='utf-8') as f:
         buml_content = f.read()
     
-    # Create prompt with BUML content
-    prompt = f"""You are a Python code generator. Based on the following BUML class diagram, generate clean, well-structured Python code that implements all the classes with their attributes and methods.
+    # Create prompt with BUML content - MORE DETAILED AND PRESCRIPTIVE
+    prompt = f"""You are a Python code generator that produces CONSISTENT, DETERMINISTIC code from BUML class diagrams.
+
+CRITICAL REQUIREMENTS - FOLLOW EXACTLY:
+1. Generate Python classes for each class in the diagram
+2. Use EXACT attribute names and types from the BUML diagram - NO VARIATIONS
+3. Use EXACT method names and signatures from the BUML diagram - NO VARIATIONS
+4. For each class, generate in this EXACT order:
+   a. Class definition with docstring
+   b. __init__ method with all attributes initialized
+   c. All other methods in order they appear in diagram
+5. Use type hints for ALL parameters and return values
+6. Use 'pass' for method bodies if implementation not specified
+7. Attributes: use exact names, preserve order from diagram
+8. Methods: use exact names, exact parameters, exact order
+9. Do NOT add extra methods, attributes, or functionality
+10. Do NOT add comments except docstrings
+11. Output ONLY the Python code in a single code block, no markdown formatting, no explanations
 
 BUML CLASS DIAGRAM:
 {buml_content}
 
-REQUIREMENTS:
-1. Generate Python classes for each class in the diagram
-2. Include all attributes with proper type hints
-3. Include all methods with proper signatures
-4. Add a __init__ method to initialize attributes
-5. Add appropriate docstrings
-6. Use Python best practices and PEP 8 style
-7. Only output the Python code, no explanations
+Generate the Python code now:"""
 
-Generate the complete Python code:"""
-    
-    # Call OpenAI API
+    # Call OpenAI API - USE LOW TEMPERATURE FOR CONSISTENCY
     print("Sending request to OpenAI API...")
     response = client.chat.completions.create(
         model="gpt-5.4",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
+        temperature=0.5,
         # max_tokens=4000
     )
     
@@ -87,7 +94,10 @@ Generate the complete Python code:"""
         # Remove last line if it's ```
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
-        generated_code = '\n'.join(lines)
+        generated_code = '\n'.join(lines).strip()
+    
+    # Additional cleanup: remove any leading/trailing whitespace
+    generated_code = generated_code.strip()
     
     # Create target directory
     Path(target_directory).mkdir(parents=True, exist_ok=True)
@@ -109,7 +119,7 @@ if __name__ == "__main__":
 
     
     buml_file = "sample.py"
-    target_dir = "target"
+    target_dir = "../CodeComparator/target"
     
     try:
         output_file = generate_python_code_from_buml(buml_file, target_dir)
