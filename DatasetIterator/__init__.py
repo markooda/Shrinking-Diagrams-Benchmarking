@@ -1,4 +1,13 @@
-from .iterator import DatasetIterator, DatasetSplit
+from .iterator import (
+    DEFAULT_SPLIT_VERSION,
+    DatasetIterator,
+    TrainDatasetIterator,
+    ValidationDatasetIterator,
+)
 
-__all__ = ["DatasetIterator", "DatasetSplit"]
-
+__all__ = [
+    "DEFAULT_SPLIT_VERSION",
+    "DatasetIterator",
+    "TrainDatasetIterator",
+    "ValidationDatasetIterator",
+]
