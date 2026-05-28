@@ -1,6 +1,14 @@
-# Shrinking Diagrams Benchmarking
+# Dataset with Iterator
 
-This repository contains a benchmarking pipeline for working with B-UML class/domain models from the BESSER ecosystem. It combines a large model dataset, conversion tools, train/validation split utilities, and code-similarity evaluation helpers.
+This repository provides a B-UML model dataset with train/validation iterators for working with BESSER class/domain models. It also includes supporting packages for model conversion, dataset splitting, code generation, and code-similarity evaluation:
+
+- `BESSER`
+- `BESSER-Dataset`
+- `BumlToPuml`
+- `BumlCodeConverter`
+- `CodeComparator`
+- `DatasetIterator`
+- `DatasetSplitter`
 
 ## What is provided
 
