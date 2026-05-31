@@ -8,7 +8,7 @@ from typing import Iterator, Tuple
 DEFAULT_SPLIT_VERSION = "last"
 
 
-class DatasetIterator(Iterator[Tuple[str, str]], ABC):
+class Dataset:
     def __init__(
         self,
         split_version: str = DEFAULT_SPLIT_VERSION,
@@ -26,42 +26,28 @@ class DatasetIterator(Iterator[Tuple[str, str]], ABC):
             split_version, self._splitter_dir
         )
 
-        split_file = (
-            self._splitter_dir / f"splits_{self._split_version}" / self.split_file_name
-        )
-        self._models = self._read_model_names(split_file)
-        self._index = 0
-
-    @property
-    @abstractmethod
-    def split_file_name(self) -> str:
-        """Name of the txt file used by this iterator."""
-
     @property
     def split_version(self) -> str:
         return self._split_version
 
-    def __iter__(self) -> "DatasetIterator":
-        return self
+    def create_train_iterator(self) -> TrainDatasetIterator:
+        return TrainDatasetIterator(self)
 
-    def __next__(self) -> Tuple[str, str]:
-        return self.next()
+    def create_validation_iterator(self) -> ValidationDatasetIterator:
+        return ValidationDatasetIterator(self)
 
-    def next(self) -> Tuple[str, str]:
-        if self.is_done():
-            raise StopIteration
+    def model_names(self, split_file_name: str) -> list[str]:
+        split_file = (
+            self._splitter_dir / f"splits_{self._split_version}" / split_file_name
+        )
+        return self._read_model_names(split_file)
 
-        model_name = self._models[self._index]
-        self._index += 1
-
+    def read_model_pair(self, model_name: str) -> Tuple[str, str]:
         python_code_path, puml_path = self._resolve_model_files(model_name)
         return (
             python_code_path.read_text(encoding="utf-8"),
             puml_path.read_text(encoding="utf-8"),
         )
-
-    def is_done(self) -> bool:
-        return self._index >= len(self._models)
 
     @staticmethod
     def _resolve_split_version(split_version: str, splitter_dir: Path) -> str:
@@ -70,7 +56,7 @@ class DatasetIterator(Iterator[Tuple[str, str]], ABC):
             raise ValueError("split_version must not be empty")
 
         if version.lower() == "last":
-            return DatasetIterator._latest_split_version(splitter_dir)
+            return Dataset._latest_split_version(splitter_dir)
 
         if version.startswith("splits_"):
             version = version.removeprefix("splits_")
@@ -95,7 +81,7 @@ class DatasetIterator(Iterator[Tuple[str, str]], ABC):
         if not versions:
             raise FileNotFoundError(f"No split directories found in: {splitter_dir}")
 
-        return max(versions, key=DatasetIterator._split_version_sort_key)
+        return max(versions, key=Dataset._split_version_sort_key)
 
     @staticmethod
     def _split_version_sort_key(version: str) -> tuple[int, tuple[int, ...], str]:
@@ -150,6 +136,39 @@ class DatasetIterator(Iterator[Tuple[str, str]], ABC):
         return python_code_path
 
 
+class DatasetIterator(Iterator[Tuple[str, str]], ABC):
+    def __init__(self, dataset: Dataset) -> None:
+        self._dataset = dataset
+        self._models = dataset.model_names(self.split_file_name)
+        self._index = 0
+
+    @property
+    @abstractmethod
+    def split_file_name(self) -> str:
+        """Name of the txt file used by this iterator."""
+
+    @property
+    def split_version(self) -> str:
+        return self._dataset.split_version
+
+    def __iter__(self) -> "DatasetIterator":
+        return self
+
+    def __next__(self) -> Tuple[str, str]:
+        return self.next()
+
+    def next(self) -> Tuple[str, str]:
+        if self.is_done():
+            raise StopIteration
+
+        model_name = self._models[self._index]
+        self._index += 1
+        return self._dataset.read_model_pair(model_name)
+
+    def is_done(self) -> bool:
+        return self._index >= len(self._models)
+
+
 class TrainDatasetIterator(DatasetIterator):
     @property
     def split_file_name(self) -> str:
@@ -164,10 +183,12 @@ class ValidationDatasetIterator(DatasetIterator):
 
 # TODO: nice to have: cache files for optimization
 if __name__ == "__main__":
+    dataset = Dataset()
+
     print("TRAIN subset:")
-    for python_code_content, puml_content in TrainDatasetIterator():
+    for python_code_content, puml_content in dataset.create_train_iterator():
         print(f"PYTHON: {python_code_content[:100]!r} | PUML: {puml_content[:100]!r}")
 
     print("\nVALIDATION subset:")
-    for python_code_content, puml_content in ValidationDatasetIterator():
+    for python_code_content, puml_content in dataset.create_validation_iterator():
         print(f"PYTHON: {python_code_content[:100]!r} | PUML: {puml_content[:100]!r}")

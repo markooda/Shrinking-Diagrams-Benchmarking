@@ -78,11 +78,16 @@ This writes `.puml` files next to each `*_BUML_model.py` and creates summary/err
 ### Iterate over train/validation data
 
 ```python
-from DatasetIterator.iterator import TrainDatasetIterator, ValidationDatasetIterator
+from DatasetIterator.iterator import Dataset
 
-for python_code, puml in TrainDatasetIterator():
+dataset = Dataset()
+
+for python_code, puml in dataset.create_train_iterator():
     # python_code is the reference Python implementation
     # puml is the PlantUML diagram text
+    pass
+
+for python_code, puml in dataset.create_validation_iterator():
     pass
 ```
 
